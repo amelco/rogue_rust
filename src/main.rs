@@ -19,6 +19,9 @@ struct Renderable {
 #[derive(Component)]
 struct LeftMover {}
 
+#[derive(Component)]
+struct DownMover {}
+
 struct State {
     ecs: World
 }
@@ -26,7 +29,9 @@ struct State {
 impl State {
     fn run_systems(&mut self) {
         let mut lw = LeftWalker{};
+        let mut dw = DownWalker{};
         lw.run_now(&self.ecs);
+        dw.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -57,6 +62,18 @@ impl<'a> System<'a> for LeftWalker {
         for (_lefty, pos) in (&lefty, &mut pos).join() {
             pos.x -= 1;
             if pos.x < 0 { pos.x = 79; }
+        }
+    }
+}
+
+struct DownWalker {}
+impl<'a> System<'a> for DownWalker {
+    type SystemData = (ReadStorage<'a, DownMover>, WriteStorage<'a, Position>);
+
+    fn run(&mut self, (downy, mut pos): Self::SystemData) {
+        for (_downy, pos) in (&downy, &mut pos).join() {
+            pos.y += 1;
+            if pos.y > 49 { pos.y = 0; }
         }
     }
 }
@@ -99,6 +116,7 @@ fn main() {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
+    gs.ecs.register::<DownMover>();
     gs.ecs.register::<Player>();
 
 
@@ -114,16 +132,30 @@ fn main() {
     .build();
 
     for i in 0..10 {
-        gs.ecs
-            .create_entity()
-            .with(Position { x: i * 7, y: 20 })
-            .with(Renderable {
-                glyph: rltk::to_cp437('☺'),
-                fg: RGB::named(rltk::RED),
-                bg: RGB::named(rltk::BLACK),
-            })
-            .with(LeftMover{})
-        .build();
+        if i%2 == 0 {
+            gs.ecs
+                .create_entity()
+                .with(Position { x: i * 7, y: 20 })
+                .with(Renderable {
+                    glyph: rltk::to_cp437('☺'),
+                    fg: RGB::named(rltk::RED),
+                    bg: RGB::named(rltk::BLACK),
+                })
+                .with(LeftMover{})
+                .with(DownMover{})
+            .build();
+        } else {
+            gs.ecs
+                .create_entity()
+                .with(Position { x: i * 7, y: 20 })
+                .with(Renderable {
+                    glyph: rltk::to_cp437('☺'),
+                    fg: RGB::named(rltk::RED),
+                    bg: RGB::named(rltk::BLACK),
+                })
+                .with(LeftMover{})
+            .build();
+        }
     }
 
     rltk::main_loop(context, gs);
